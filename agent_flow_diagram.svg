@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1000"
+   height="700"
+   viewBox="0 0 1000 700"
+   version="1.1"
+   id="svg918"
+   sodipodi:docname="agent_flow_diagram.svg"
+   inkscape:version="1.1.2 (b8e25be8, 2022-02-05)"
+   inkscape:export-filename="/Users/mcutler/workspaces/scv/ai-doc-generator/agent_flow_diagram.png"
+   inkscape:export-xdpi="116.87"
+   inkscape:export-ydpi="116.87"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview920"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="1.099"
+     inkscape:cx="227.47953"
+     inkscape:cy="360.78253"
+     inkscape:window-width="2753"
+     inkscape:window-height="1337"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg918" />
+  <style
+     id="style824">
+    .agent-rect {
+      fill: #e6f2ff;
+      stroke: #3498db;
+      stroke-width: 2;
+      rx: 10;
+      ry: 10;
+    }
+    .external-rect {
+      fill: #fff2e6;
+      stroke: #e67e22;
+      stroke-width: 2;
+      rx: 10;
+      ry: 10;
+    }
+    .arrow {
+      stroke: #7f8c8d;
+      stroke-width: 2;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .data-flow {
+      stroke: #2ecc71;
+      stroke-width: 2;
+      stroke-dasharray: 5,5;
+      fill: none;
+      marker-end: url(#arrowhead-green);
+    }
+    .label {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      text-anchor: middle;
+      fill: #333;
+    }
+    .ext-label {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      text-anchor: middle;
+      fill: #e67e22;
+      font-weight: bold;
+    }
+    .agent-label {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      text-anchor: middle;
+      fill: #2980b9;
+      font-weight: bold;
+    }
+    .flow-label {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      fill: #555;
+      text-anchor: middle;
+    }
+    .title {
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      text-anchor: middle;
+      fill: #333;
+      font-weight: bold;
+    }
+  </style>
+  <!-- Arrow markers -->
+  <defs
+     id="defs832">
+    <marker
+       id="arrowhead"
+       markerWidth="10"
+       markerHeight="7"
+       refX="9"
+       refY="3.5"
+       orient="auto">
+      <polygon
+         points="0 0, 10 3.5, 0 7"
+         fill="#7f8c8d"
+         id="polygon826" />
+    </marker>
+    <marker
+       id="arrowhead-green"
+       markerWidth="10"
+       markerHeight="7"
+       refX="9"
+       refY="3.5"
+       orient="auto">
+      <polygon
+         points="0 0, 10 3.5, 0 7"
+         fill="#2ecc71"
+         id="polygon829" />
+    </marker>
+  </defs>
+  <!-- Title -->
+  <text
+     x="500"
+     y="40"
+     class="title"
+     id="text834">AI Document Generator - Agent Flow Diagram</text>
+  <!-- Agents -->
+  <rect
+     x="400"
+     y="100"
+     width="200"
+     height="100"
+     class="agent-rect"
+     id="rect836" />
+  <text
+     x="500"
+     y="150"
+     class="agent-label"
+     id="text838">Orchestrator Agent</text>
+  <rect
+     x="150"
+     y="300"
+     width="180"
+     height="100"
+     class="agent-rect"
+     id="rect840" />
+  <text
+     x="240"
+     y="350"
+     class="agent-label"
+     id="text842">Web Research Agent</text>
+  <rect
+     x="400"
+     y="300"
+     width="200"
+     height="100"
+     class="agent-rect"
+     id="rect844" />
+  <text
+     x="500"
+     y="350"
+     class="agent-label"
+     id="text846">Document Structure Agent</text>
+  <rect
+     x="650"
+     y="300"
+     width="180"
+     height="100"
+     class="agent-rect"
+     id="rect848" />
+  <text
+     x="740"
+     y="350"
+     class="agent-label"
+     id="text850">Content Writer Agent</text>
+  <!-- External Services -->
+  <rect
+     x="150"
+     y="500"
+     width="180"
+     height="80"
+     class="external-rect"
+     id="rect852" />
+  <text
+     x="240"
+     y="540"
+     class="ext-label"
+     id="text854">Perplexity API</text>
+  <rect
+     x="400"
+     y="500"
+     width="180"
+     height="80"
+     class="external-rect"
+     id="rect856" />
+  <text
+     x="490"
+     y="540"
+     class="ext-label"
+     id="text858">OpenAI GPT API</text>
+  <rect
+     x="650"
+     y="500"
+     width="180"
+     height="80"
+     class="external-rect"
+     id="rect860" />
+  <text
+     x="740"
+     y="540"
+     class="ext-label"
+     id="text862">DALL-E API</text>
+  <!-- Connections from Orchestrator -->
+  <path
+     d="M 450,200 L 450,240 L 240,240 L 240,300"
+     class="arrow"
+     id="path864" />
+  <path
+     d="M 500,200 L 500,300"
+     class="arrow"
+     id="path866" />
+  <path
+     d="M 550,200 L 550,240 L 740,240 L 740,300"
+     class="arrow"
+     id="path868" />
+  <!-- Connections to External Services -->
+  <path
+     d="M 240,400 L 240,500"
+     class="arrow"
+     id="path870" />
+  <path
+     d="M 500,400 L 500,500"
+     class="arrow"
+     id="path872" />
+  <path
+     d="M 740,400 L 740,500"
+     class="arrow"
+     id="path874" />
+  <!-- Data Flow -->
+  <path
+     d="M 240,400 L 240,450 L 500,450 L 500,400"
+     class="data-flow"
+     id="path876" />
+  <path
+     d="M 500,400 L 500,450 L 740,450 L 740,400"
+     class="data-flow"
+     id="path878" />
+  <path
+     d="M 740,300 L 850,300 L 850,150 L 600,150"
+     class="data-flow"
+     id="path880" />
+  <!-- Flow Labels -->
+  <text
+     x="340"
+     y="230"
+     class="flow-label"
+     id="text882">1. Delegates research</text>
+  <text
+     x="520"
+     y="230"
+     class="flow-label"
+     id="text884">2. Creates structure</text>
+  <text
+     x="650"
+     y="230"
+     class="flow-label"
+     id="text886">3. Generates content</text>
+  <text
+     x="240"
+     y="470"
+     class="flow-label"
+     id="text888">Web search queries</text>
+  <text
+     x="500"
+     y="470"
+     class="flow-label"
+     id="text890">Structure generation</text>
+  <text
+     x="740"
+     y="470"
+     class="flow-label"
+     id="text892">Content generation</text>
+  <text
+     x="740"
+     y="485"
+     class="flow-label"
+     id="text894"> image creation</text>
+  <text
+     x="350"
+     y="430"
+     class="flow-label"
+     id="text896">Research results</text>
+  <text
+     x="610"
+     y="430"
+     class="flow-label"
+     id="text898">Document structure</text>
+  <text
+     x="850"
+     y="230"
+     class="flow-label"
+     id="text900">Final document</text>
+  <!-- API Key -->
+  <rect
+     x="50.818649"
+     y="620.81866"
+     width="72.047867"
+     height="18.362701"
+     class="agent-rect"
+     id="rect902" />
+  <text
+     x="90"
+     y="635"
+     class="label"
+     id="text904">Agent</text>
+  <rect
+     x="201.27344"
+     y="621.27344"
+     width="118.45405"
+     height="17.453138"
+     class="external-rect"
+     id="rect906" />
+  <text
+     x="260"
+     y="635"
+     class="label"
+     id="text908">External Service</text>
+  <path
+     d="M 400,625 L 450,625"
+     class="arrow"
+     id="path910" />
+  <text
+     x="490"
+     y="635"
+     class="label"
+     id="text912">Control Flow</text>
+  <path
+     d="M 600,625 L 650,625"
+     class="data-flow"
+     id="path914" />
+  <text
+     x="690"
+     y="635"
+     class="label"
+     id="text916">Data Flow</text>
+</svg>
