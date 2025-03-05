@@ -521,70 +521,42 @@ class ContentWriterAgent(BaseAgent):
             break
     
     async def _generate_and_save_image(self, description: str, caption: str) -> Optional[str]:
-        """Generate an image using DALL-E and save it.
+        """Generate and save an image based on the description.
         
         Args:
-            description (str): The image description
-            caption (str): The image caption
+            description (str): The description of the image to generate
+            caption (str): Caption for the image
             
         Returns:
-            Optional[str]: The path to the saved image, or None if generation failed
+            Optional[str]: Path to the saved image, or None if generation failed
         """
-        # Check for API key
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            self.logger.error("OPENAI_API_KEY environment variable not set")
-            self.logger.error("Please set the OPENAI_API_KEY environment variable to enable image generation")
-            return None
-            
         # Input validation
         if not description or len(description) < 10:
             self.logger.error("Image description is too short or empty")
             return None
-            
+        
         self.logger.debug(f"Generating image for caption: {caption}")
         self.logger.debug(f"Using description: {description}")
         
         try:
-            # Create images directory if it doesn't exist
-            os.makedirs("output/images", exist_ok=True)
+            # Use the ImageGenerationAgent to generate the image
+            from .image_generation_agent import ImageGenerationAgent
             
-            # Configure OpenAI client
-            client = OpenAI(api_key=api_key)
+            image_agent = ImageGenerationAgent()
+            task = {
+                "description": description,
+                "caption": caption,
+                # Use default settings for size, quality, and style
+            }
             
-            # Generate image using DALL-E 3
-            self.logger.debug("Calling DALL-E API to generate image")
-            response = client.images.generate(
-                model="dall-e-3",
-                prompt=f"Create an abstract, conceptual visualization representing {description}. Make it visually striking with modern design elements. The image should be artistic and symbolic, avoiding any explicit text or labels. Use visual metaphors and creative symbolism to convey the concept.",
-                n=1,
-                size="1792x1024",
-                quality="standard"
-            )
+            result = await image_agent.execute(task)
             
-            if not response.data:
-                self.logger.error("No image data received from DALL-E API")
+            if result["success"]:
+                self.logger.debug(f"Image generated successfully: {result['image_path']}")
+                return result["image_path"]
+            else:
+                self.logger.error(f"Image generation failed: {result.get('error', 'Unknown error')}")
                 return None
-                
-            image_url = response.data[0].url
-            self.logger.debug(f"Image generated successfully, URL: {image_url}")
-            
-            # Download and save image
-            filename = f"{slugify(caption)}.png"
-            path = os.path.join("output/images", filename)
-            
-            self.logger.debug(f"Downloading image to: {path}")
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as resp:
-                    if resp.status != 200:
-                        self.logger.error(f"Failed to download image: HTTP {resp.status}")
-                        return None
-                        
-                    with open(path, "wb") as f:
-                        f.write(await resp.read())
-                        
-            self.logger.debug("Image saved successfully")
-            return path
             
         except Exception as e:
             self.logger.error(f"Error generating/saving image: {str(e)}")
