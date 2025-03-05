@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./output:/app/output
+    environment:
+      - DEBUG=true
+      - APP_ENV=development
+    env_file:
+      - .env.local
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload 

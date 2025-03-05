@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv
+.env
+.env.*
+!.env.example
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+
+# Tests
+tests/
+pytest.ini
+.coverage
+htmlcov/
+
+# Output
+output/
+*.docx
+
+# Documentation
+doc/
+*.md
+!README.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore 
