@@ -65,7 +65,8 @@ class DocumentStructureAgent(BaseAgent):
             # Fallback to simple section parsing
             sections = self._parse_structure(str(structure_response))
 
-        return ReportStructure(
+        # Create the final structure
+        structure = ReportStructure(
             title=topic,
             sections=sections,
             metadata={
@@ -75,6 +76,25 @@ class DocumentStructureAgent(BaseAgent):
                 "target_pages": max_pages,
             },
         )
+
+        # Save structure to temporary file for progressive saving and recovery
+        import json
+        import os
+
+        # Create output directory if it doesn't exist
+        os.makedirs("output", exist_ok=True)
+
+        # Format filename for structure JSON
+        filename = topic.replace(" ", "_").replace(":", "_").replace("/", "_")
+        structure_path = f"output/{filename}_structure.json"
+
+        # Save structure as JSON
+        with open(structure_path, "w") as f:
+            f.write(structure.model_dump_json(indent=2))
+
+        self.logger.info(f"Document structure saved to {structure_path}")
+
+        return structure
 
     def _get_template(self, template_type: str) -> Dict[str, Any]:
         """Get the base template for the document structure.

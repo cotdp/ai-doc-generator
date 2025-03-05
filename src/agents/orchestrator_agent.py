@@ -60,14 +60,13 @@ class OrchestratorAgent(BaseAgent):
             )
 
             # 4. Generate content
-            content = await self.writer_agent.execute(
-                {
-                    "structure": structure,
-                    "research": research_results,
-                    "max_pages": request.max_pages,
-                    "topic": request.topic,  # Explicitly pass the topic
-                }
-            )
+            content = await self.writer_agent.execute({
+                "structure": structure,
+                "research": research_results,
+                "max_pages": request.max_pages,
+                "topic": request.topic,  # Explicitly pass the topic
+                "max_concurrent_tasks": task.get("max_concurrent_tasks", 10)  # Default to 10 concurrent tasks
+            })
 
             self.active_tasks[task_id].status = "completed"
             return {"task_id": task_id, "status": "completed", "content": content}

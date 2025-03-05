@@ -44,6 +44,9 @@ class ReportRequest(BaseModel):
     include_images: bool = Field(
         default=True, description="Whether to include images in the report"
     )
+    max_concurrent_tasks: int = Field(
+        default=10, ge=1, le=20, description="Maximum number of concurrent tasks to run (1-20)"
+    )
 
 
 class ResearchResult(BaseModel):

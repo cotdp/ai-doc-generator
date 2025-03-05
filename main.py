@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict
 import os
 import uvicorn
@@ -43,7 +43,8 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
             "topic": request.topic,
             "template_type": request.template_type,
             "max_pages": request.max_pages,
-            "include_images": request.include_images
+            "include_images": request.include_images,
+            "max_concurrent_tasks": request.max_concurrent_tasks
         }
         
         background_tasks.add_task(orchestrator.execute, task)
@@ -51,7 +52,7 @@ async def generate_report(request: ReportRequest, background_tasks: BackgroundTa
         return {
             "task_id": orchestrator.active_tasks[-1].id if orchestrator.active_tasks else None,
             "status": "accepted",
-            "message": f"Report generation started for topic: {request.topic}"
+            "message": f"Report generation started for topic: {request.topic} with concurrency: {request.max_concurrent_tasks}"
         }
         
     except Exception as e:

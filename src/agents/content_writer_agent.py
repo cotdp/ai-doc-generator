@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from typing import Any, Dict, List, Optional
 
 from docx import Document
@@ -105,35 +106,30 @@ class ContentWriterAgent(BaseAgent):
 
     async def execute(self, task: Dict[str, Any]) -> str:
         """Execute the content writing task.
-
+        
         Args:
             task (Dict[str, Any]): The content writing task
-
+            
         Returns:
             str: The path to the generated document
         """
         # Extract task parameters
         structure = task["structure"]
         research = task["research"]
-        title = (
-            structure.title
-        )  # Get title from structure instead of as a separate param
+        title = structure.title  # Get title from structure instead of as a separate param
         include_images = task.get("include_images", True)  # Default to including images
-
+        max_concurrent_tasks = task.get("max_concurrent_tasks", 10)  # Default concurrency limit
+        
         # Extract the main topic from the research for consistent referencing
         main_topic = title  # Default to using the title as the main topic
-
+        
         # Try to extract a more specific topic from research metadata if available
         for item in research:
-            if (
-                isinstance(item, dict)
-                and "metadata" in item
-                and "question" in item["metadata"]
-            ):
-                main_topic = item["metadata"]["question"]
+            if isinstance(item, dict) and 'metadata' in item and 'question' in item['metadata']:
+                main_topic = item['metadata']['question']
                 self.logger.info(f"Extracted main topic from research: {main_topic}")
                 break
-
+                
         # Create images directory if including images
         images_dir = None
         if include_images:
@@ -142,135 +138,135 @@ class ContentWriterAgent(BaseAgent):
             self.logger.info(f"Images enabled, using directory: {images_dir}")
         else:
             self.logger.info("Images disabled for this report")
-
+        
         # Format title for filename
         filename = title.replace(" ", "_").replace(":", "_").replace("/", "_")
         output_path = f"output/{filename}.docx"
-
+        
         # Create a new document
         doc = Document()
-
+        
         # Add title
         doc.add_heading(title, 0)
-
-        # Add each section
-        is_first_section = True
-        for section in structure.sections:
-            await self._add_section(
-                doc,
-                section,
-                research,
-                images_dir if include_images else None,
-                level=1,
-                is_first_section=is_first_section,
-                main_topic=main_topic,
-            )
-            is_first_section = (
-                False  # Only the first iteration will have is_first_section=True
-            )
-
-        # Save the document
+        
+        # Create a lock for document access
+        import asyncio
+        doc_lock = asyncio.Lock()
+        
+        # Save the initial document with just the title
         doc.save(output_path)
-        self.logger.info(f"Document saved to {output_path}")
-
-        return output_path
-
-    async def _add_section(
-        self,
-        doc: Document,
-        section: ReportSection,
-        research: List[Dict[str, Any]],
-        images_dir: str = None,
-        level: int = 1,
-        is_first_section: bool = True,
-        main_topic: str = "",
-    ) -> None:
-        """Add a section to the document.
-
-        Args:
-            doc (Document): The document to add the section to
-            section (ReportSection): The section to add
-            research (List[Dict[str, Any]]): The research data
-            images_dir (str): Directory to store generated images
-            level (int): The heading level
-            is_first_section (bool): Whether this is the first section at the top level
-            main_topic (str): The main topic of the report
-        """
-        # Log section being added
-        self.logger.info(
-            f"Adding section: {section.title} (Level {level}, First section: {is_first_section})"
-        )
-
-        # Add section heading
-        doc.add_heading(section.title, level)
-
-        # For images, only use for the first top-level section
-        section_images_dir = None
-        if is_first_section and level == 1 and images_dir:
-            section_images_dir = images_dir
-            self.logger.info(f"Using images for first section: {section.title}")
-        else:
-            self.logger.info(f"Skipping images for section: {section.title}")
-
-        # Generate content if empty
-        if not section.content:
-            self.logger.info(f"Generating content for section: {section.title}")
-            content = await self._generate_content(
-                section.title,
-                research,
-                include_images=is_first_section and level == 1,
+        self.logger.info(f"Initial document saved to {output_path}")
+        
+        # Process top-level sections in parallel with concurrency limit
+        top_level_sections = structure.sections
+        
+        # Log the parallelization plan
+        self.logger.info(f"Processing {len(top_level_sections)} top-level sections with max concurrency of {max_concurrent_tasks}")
+        
+        # Create tasks for each top-level section
+        section_tasks = []
+        for i, section in enumerate(top_level_sections):
+            is_first_section = (i == 0)
+            task = self._process_section_async(
+                doc, 
+                section, 
+                research, 
+                images_dir if include_images else None, 
+                level=1, 
+                is_first_section=is_first_section, 
                 main_topic=main_topic,
+                output_path=output_path,
+                doc_lock=doc_lock
             )
+            section_tasks.append(task)
+        
+        # Run tasks with concurrency limit
+        await self._run_with_concurrency(section_tasks, max_concurrent_tasks)
+        
+        # Final save
+        async with doc_lock:
+            doc.save(output_path)
+        
+        self.logger.info(f"Document completed and saved to {output_path}")
+        return output_path
+        
+    async def _run_with_concurrency(self, tasks, concurrency_limit):
+        """Run tasks with a concurrency limit.
+        
+        Args:
+            tasks: List of coroutines to run
+            concurrency_limit: Maximum number of tasks to run concurrently
+        """
+        import asyncio
+        semaphore = asyncio.Semaphore(concurrency_limit)
+        
+        async def _task_with_semaphore(task):
+            async with semaphore:
+                return await task
+        
+        return await asyncio.gather(*[_task_with_semaphore(task) for task in tasks])
+        
+    async def _process_section_async(self, doc, section, research, images_dir, level, is_first_section, main_topic, output_path, doc_lock):
+        """Process a section asynchronously.
+        
+        Args:
+            doc: The document to add the section to
+            section: The section to process
+            research: The research results
+            images_dir: The directory to save images to
+            level: The heading level
+            is_first_section: Whether this is the first section
+            main_topic: The main topic of the report
+            output_path: The path to save the document to
+            doc_lock: Lock for document access
+        """
+        self.logger.info(f"Starting processing of section: {section.title}")
+        
+        # Generate content if not already present
+        if not section.content:
+            start_time = time.time()
+            self.logger.info(f"Generating content for section: {section.title}")
+            content = await self._generate_content(section.title, research, include_images=(images_dir is not None), main_topic=main_topic)
             section.content = content
-            self.logger.debug(f"Content generated, length: {len(content)} characters")
-
-            # Debug log: check if content contains image references
-            if section_images_dir:
-                image_refs = re.findall(r"!\[(.+?)\]\((.+?)\)", content)
-                self.logger.info(
-                    f"Found {len(image_refs)} image references in generated content"
-                )
-                for i, (caption, desc) in enumerate(image_refs):
-                    self.logger.info(
-                        f"  Image {i+1}: Caption='{caption}', Description='{desc}'"
-                    )
-
-        # Log whether images_dir is provided
-        self.logger.info(
-            f"Images directory for this section: {section_images_dir if section_images_dir else 'None (images disabled)'}"
-        )
-
-        # Convert markdown content to formatted paragraphs
-        self.logger.info(f"Converting markdown to docx for section: {section.title}")
-        await self._convert_markdown_to_docx(section.content, doc, section_images_dir)
-
-        # Add any tables
-        if section.tables:
-            for table_data in section.tables:
-                self._add_table(doc, table_data)
-
-        # Add any images
-        if section.images and section_images_dir:
-            self.logger.info(
-                f"Adding {len(section.images)} explicit images from section data"
-            )
-            for image_data in section.images:
-                self._add_image(doc, image_data)
-
-        # Add subsections recursively
+            elapsed = time.time() - start_time
+            self.logger.info(f"Content generated for {section.title}, took {elapsed:.2f}s, length: {len(content)} characters")
+        
+        # Add section to document (protected by lock)
+        async with doc_lock:
+            # Add heading
+            heading = doc.add_heading(section.title, level=level)
+            
+            # Add content (convert from markdown to docx)
+            if section.content:
+                await self._convert_markdown_to_docx(section.content, doc, images_dir)
+            
+            # Save progress after each section
+            doc.save(output_path)
+            self.logger.info(f"Progress saved after adding section: {section.title}")
+        
+        # Process subsections if any (in parallel)
         if section.subsections:
-            is_first_subsection = True
-            for subsection in section.subsections:
-                await self._add_section(
+            subsection_tasks = []
+            for i, subsection in enumerate(section.subsections):
+                task = self._process_section_async(
                     doc,
                     subsection,
                     research,
-                    section_images_dir,
+                    images_dir,
                     level + 1,
-                    is_first_section and is_first_subsection,
-                    main_topic=main_topic,
+                    is_first_section and i == 0,
+                    main_topic,
+                    output_path,
+                    doc_lock
                 )
-                is_first_subsection = False
+                subsection_tasks.append(task)
+            
+            # Run subsection tasks with sensible concurrency - limit to 3 subsections at a time
+            # to avoid overwhelming the system with too many nested tasks
+            await self._run_with_concurrency(subsection_tasks, 3)
+        
+        self.logger.info(f"Completed processing of section: {section.title}")
+        return section.title
 
     async def _convert_markdown_to_docx(
         self, markdown_text: str, doc: Document, images_dir: str
