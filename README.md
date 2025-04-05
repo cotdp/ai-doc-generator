@@ -114,12 +114,16 @@ The AI Document Generator uses a multi-agent system architecture for generating 
    python main.py
    ```
 
+The application uses SQLite by default, storing data in `aidocgen.db` in the project root directory. No additional database setup is required for local development.
+
 ### Docker Development
 
 1. Build and run with Docker Compose:
    ```bash
    docker-compose up --build
    ```
+
+The Docker setup uses SQLite as well, with the database file stored in the project root directory and mapped as a volume. This ensures your database persists between container restarts.
 
 ## Usage
 
