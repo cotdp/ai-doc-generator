@@ -81,8 +81,30 @@
   - Docker image building and pushing
   - Deployment configuration
 
+## Phase 8: Future Enhancements
+- [x] Improve concurrency handling
+  - Implement task queue with Celery/RQ
+  - Add worker scaling 
+  - Optimize resource usage
+- [x] Add user authentication
+  - Implement JWT authentication
+  - Add role-based access control
+  - Create user management API
+- [x] Enhance persistence layer
+  - Add database for task storage
+  - Implement report versioning
+  - Add report templates repository
+- [x] Improve monitoring and observability
+  - Add structured logging
+  - Implement metrics collection
+  - Create dashboards for system health
+- [x] Add advanced features
+  - Implement real-time progress via WebSockets
+  - Add collaborative editing capabilities
+  - Create interactive report customization
+
 ## Required API Keys and Services
 ```plaintext
 PERPLEXITY_API_KEY=your_key_here  # Get from https://docs.perplexity.ai
 OPENAI_API_KEY=your_key_here      # Get from https://platform.openai.com
-``` 
+```

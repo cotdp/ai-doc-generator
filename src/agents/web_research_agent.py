@@ -1,5 +1,8 @@
+import asyncio
 import os
+import time
 from datetime import datetime
+from functools import wraps
 from typing import Any, Dict, List
 
 import aiohttp
@@ -26,8 +29,58 @@ Your response MUST be formatted in well-structured Markdown, including:
 Always cite your sources by providing the source title and URL where possible. Be transparent about the reliability and recency of information."""
 
 
+def retry_with_backoff(max_retries=3, initial_backoff=1):
+    """Retry decorator with exponential backoff.
+    
+    Args:
+        max_retries (int): Maximum number of retries
+        initial_backoff (int): Initial backoff time in seconds
+        
+    Returns:
+        Function: Decorated function
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            retries = 0
+            backoff = initial_backoff
+            
+            while retries < max_retries:
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    retries += 1
+                    if retries == max_retries:
+                        raise
+                    
+                    # Log the retry attempt
+                    args[0].logger.warning(
+                        f"Retry {retries}/{max_retries} for {func.__name__} after error: {str(e)}. "
+                        f"Waiting {backoff}s before next attempt."
+                    )
+                    
+                    # Wait before retrying
+                    await asyncio.sleep(backoff)
+                    backoff *= 2
+            
+        return wrapper
+    return decorator
+
+
 class WebResearchAgent(BaseAgent):
     """Agent responsible for conducting web research using Perplexity API."""
+
+    def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.3):
+        """Initialize the web research agent.
+
+        Args:
+            model (str): The model to use for the agent
+            temperature (float): The temperature for model responses
+        """
+        super().__init__(model, temperature)
+        
+        # Initialize API rate limiting semaphore
+        self.api_semaphore = asyncio.Semaphore(5)  # Limit to 5 concurrent API calls
 
     async def execute(self, task: Dict[str, Any]) -> List[ResearchResult]:
         """Execute research tasks for given questions.
@@ -42,38 +95,73 @@ class WebResearchAgent(BaseAgent):
         context = task.get("context", "")
         results = []
 
-        for question in questions:
+        # Create tasks for each question
+        research_tasks = [
+            self._research_question_with_logging(question, context)
+            for question in questions
+        ]
+        
+        # Execute tasks concurrently
+        research_results = await asyncio.gather(*research_tasks, return_exceptions=True)
+        
+        # Process results
+        for question, result in zip(questions, research_results):
+            if isinstance(result, Exception):
+                self.logger.error(f"Error researching question '{question}': {str(result)}")
+                continue
+                
             try:
-                # Use Perplexity API for research
-                research = await self._research_question(question, context)
-
                 # Evaluate credibility
-                credibility_score = await self._evaluate_credibility(research)
+                credibility_score = await self._evaluate_credibility(result)
 
-                result = ResearchResult(
+                research_result = ResearchResult(
                     source="Perplexity Research",
-                    content=research["answer"],
+                    content=result["answer"],
                     credibility_score=credibility_score,
                     timestamp=datetime.utcnow().isoformat(),
                     metadata={
                         "question": question,
                         "context": context,
-                        "citations": research.get("citations", []),
+                        "citations": result.get("citations", []),
                     },
                 )
 
-                results.append(result)
+                results.append(research_result)
 
                 # Save research as markdown file
-                await self._save_research_as_markdown(question, research["answer"])
+                await self._save_research_as_markdown(question, result["answer"])
 
             except Exception as e:
-                self.logger.error(f"Error researching question '{question}': {str(e)}")
+                self.logger.error(f"Error processing result for '{question}': {str(e)}")
                 # Continue with next question on error
                 continue
 
         return results
+    
+    async def _research_question_with_logging(self, question: str, context: str) -> Dict[str, Any]:
+        """Research a question with logging.
+        
+        Args:
+            question (str): The research question
+            context (str): Additional context
+            
+        Returns:
+            Dict[str, Any]: The research results
+        """
+        self.logger.info(f"Starting research on question: {question}")
+        start_time = time.time()
+        
+        try:
+            result = await self._research_question(question, context)
+            elapsed_time = time.time() - start_time
+            self.logger.info(f"Completed research on question: {question} in {elapsed_time:.2f}s")
+            return result
+        except Exception as e:
+            elapsed_time = time.time() - start_time
+            self.logger.error(f"Failed research on question: {question} after {elapsed_time:.2f}s: {str(e)}")
+            raise
 
+    @retry_with_backoff(max_retries=3, initial_backoff=2)
     async def _research_question(self, question: str, context: str) -> Dict[str, Any]:
         """Research a question using Perplexity API.
 
@@ -90,7 +178,7 @@ class WebResearchAgent(BaseAgent):
             query = f"{question}\nContext: {context}"
 
         try:
-            # Call Perplexity API
+            # Call Perplexity API with rate limiting
             perplexity_response = await self._call_perplexity_api(query)
 
             # Extract the answer from the response
@@ -152,23 +240,34 @@ class WebResearchAgent(BaseAgent):
             "return_citations": True,
         }
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.post(
-                    "https://api.perplexity.ai/chat/completions",
-                    headers=headers,
-                    json=payload,
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        raise ValueError(
-                            f"Perplexity API error: {response.status} - {error_text}"
-                        )
+        # Use semaphore to limit concurrent API calls
+        async with self.api_semaphore:
+            self.logger.debug(f"Sending request to Perplexity API for query: {query[:50]}...")
+            
+            async with aiohttp.ClientSession() as session:
+                try:
+                    start_time = time.time()
+                    async with session.post(
+                        "https://api.perplexity.ai/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=60,  # Add explicit timeout
+                    ) as response:
+                        elapsed_time = time.time() - start_time
+                        self.logger.debug(f"Perplexity API response received in {elapsed_time:.2f}s with status {response.status}")
+                        
+                        if response.status != 200:
+                            error_text = await response.text()
+                            raise ValueError(
+                                f"Perplexity API error: {response.status} - {error_text}"
+                            )
 
-                    return await response.json()
-            except Exception as e:
-                self.logger.error(f"Error calling Perplexity API: {str(e)}")
-                raise
+                        return await response.json()
+                except asyncio.TimeoutError:
+                    raise ValueError("Perplexity API request timed out after 60s")
+                except Exception as e:
+                    self.logger.error(f"Error calling Perplexity API: {str(e)}")
+                    raise
 
     def _extract_citations(self, text: str) -> List[str]:
         """Extract citations from the research text.

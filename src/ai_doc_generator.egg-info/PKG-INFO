@@ -1,3 +1,36 @@
+Metadata-Version: 2.4
+Name: ai-doc-generator
+Version: 0.1.0
+Summary: AI-powered system for generating research reports
+Author-email: AI Doc Generator Team <info@example.com>
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: fastapi>=0.109.0
+Requires-Dist: uvicorn>=0.27.0
+Requires-Dist: python-docx>=1.1.0
+Requires-Dist: langchain>=0.1.0
+Requires-Dist: langchain-openai>=0.0.5
+Requires-Dist: langchain-community>=0.0.10
+Requires-Dist: pydantic>=2.6.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: aiohttp>=3.9.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.5; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: httpx>=0.26.0; extra == "dev"
+Requires-Dist: black>=24.1.0; extra == "dev"
+Requires-Dist: isort>=5.13.2; extra == "dev"
+Requires-Dist: flake8>=7.0.0; extra == "dev"
+Requires-Dist: mypy>=1.8.0; extra == "dev"
+Dynamic: license-file
+
 # AI Document Generator
 
 An AI-powered system for generating research reports using FastAPI, LangChain, and Perplexity AI.
@@ -114,16 +147,12 @@ The AI Document Generator uses a multi-agent system architecture for generating 
    python main.py
    ```
 
-The application uses SQLite by default, storing data in `aidocgen.db` in the project root directory. No additional database setup is required for local development.
-
 ### Docker Development
 
 1. Build and run with Docker Compose:
    ```bash
    docker-compose up --build
    ```
-
-The Docker setup uses SQLite as well, with the database file stored in the project root directory and mapped as a volume. This ensures your database persists between container restarts.
 
 ## Usage
 
